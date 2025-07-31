@@ -40,11 +40,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
       const currentName = orderData.name || user?.name || "";
       const currentPhone = orderData.phone || user?.phone || "";
 
-      if (
-        orderData.deliveryOption === "delivery" &&
-        !orderData.address.trim()
-      ) {
-        alert("Please enter a delivery address");
+      if (orderData.deliveryOption === "delivery" && !orderData.address) {
+        alert("Please select a delivery area");
         return;
       }
       if (!currentName.trim()) {
@@ -53,6 +50,15 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
       }
       if (!currentPhone.trim()) {
         alert("Please enter your phone number");
+        return;
+      }
+
+      // Validate phone number format for Kenyan numbers
+      const phoneRegex = /^254[0-9]{9}$/;
+      if (!phoneRegex.test(currentPhone.replace(/[\s\-\(\)]/g, ""))) {
+        alert(
+          "Please enter a valid Kenyan phone number (format: 254XXXXXXXXX)"
+        );
         return;
       }
     }
@@ -67,6 +73,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
     setLoading(true);
 
     try {
+      const finalPhone = orderData.phone || user?.phone || "";
+
       const order = {
         items: items.map((item) => ({
           product: item.product.id,
@@ -74,12 +82,26 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
         })),
         customerInfo: {
           name: orderData.name || user?.name || "",
-          phone: orderData.phone || user?.phone || "",
-          address: orderData.address,
+          phone: finalPhone.replace(/[\s\-()]/g, ""), // Clean phone number
+          address:
+            orderData.deliveryOption === "delivery"
+              ? `${orderData.address}${
+                  orderData.deliveryAddress
+                    ? ` - ${orderData.deliveryAddress}`
+                    : ""
+                }`
+              : orderData.address,
         },
         paymentMethod: orderData.paymentMethod,
         deliveryOption: orderData.deliveryOption,
-        deliveryAddress: orderData.deliveryAddress || orderData.address,
+        deliveryAddress:
+          orderData.deliveryOption === "delivery"
+            ? `${orderData.address}${
+                orderData.deliveryAddress
+                  ? ` - ${orderData.deliveryAddress}`
+                  : ""
+              }`
+            : orderData.deliveryAddress || orderData.address,
       };
 
       await makeOrder(order);
@@ -88,6 +110,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
       clearCart();
     } catch (error) {
       console.error("Order submission failed:", error);
+      alert("Failed to place order. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -98,10 +121,32 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
-    setOrderData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    const { name, value } = e.target;
+
+    // Format phone number for Kenyan format
+    if (name === "phone") {
+      let formattedValue = value.replace(/[^\d]/g, ""); // Remove non-digits
+
+      // Auto-format to Kenyan format
+      if (formattedValue.startsWith("0")) {
+        formattedValue = "254" + formattedValue.substring(1);
+      } else if (
+        formattedValue.startsWith("7") ||
+        formattedValue.startsWith("1")
+      ) {
+        formattedValue = "254" + formattedValue;
+      }
+
+      setOrderData((prev) => ({
+        ...prev,
+        [name]: formattedValue,
+      }));
+    } else {
+      setOrderData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   if (orderComplete) {
@@ -113,7 +158,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
             Order Confirmed!
           </h2>
           <p className="text-gray-600 mb-6">
-            Thank you for your order. You'll receive a confirmation SMS shortly.
+            Thank you for your order! {!user && "As a guest, "}You'll receive a
+            confirmation SMS at {orderData.phone || user?.phone} shortly.
           </p>
           <button
             onClick={onClose}
@@ -169,9 +215,34 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
         <div className="p-6">
           {step === 1 && (
             <div>
-              <h3 className="text-lg font-semibold text-african-brown mb-4">
-                Order Summary
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-african-brown">
+                  Order Summary
+                </h3>
+                {!user && (
+                  <div className="text-right">
+                    <p className="text-xs text-gray-600 mb-1">
+                      Have an account?{" "}
+                      <button
+                        type="button"
+                        className="text-african-terracotta hover:underline font-medium"
+                        onClick={() => {
+                          // This would typically open a login modal
+                          // For now, just show an alert
+                          alert(
+                            "Login functionality would be implemented here"
+                          );
+                        }}
+                      >
+                        Sign in
+                      </button>
+                    </p>
+                    <span className="text-xs bg-african-cream text-african-brown px-2 py-1 rounded-full">
+                      Checking out as guest
+                    </span>
+                  </div>
+                )}
+              </div>
               <div className="space-y-3 mb-6">
                 {items.map((item) => (
                   <div
@@ -211,16 +282,23 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
 
           {step === 2 && (
             <div>
-              <h3 className="text-lg font-semibold text-african-brown mb-4">
-                Delivery Information
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-african-brown">
+                  Delivery Information
+                </h3>
+                {!user && (
+                  <span className="text-xs bg-african-cream text-african-brown px-2 py-1 rounded-full">
+                    Guest Checkout
+                  </span>
+                )}
+              </div>
               <div className="space-y-4">
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
                     name="name"
-                    placeholder="Full Name"
+                    placeholder={user ? "Full Name" : "Enter your full name"}
                     value={orderData.name || user?.name || ""}
                     onChange={handleChange}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-african-gold"
@@ -232,11 +310,18 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
                   <input
                     type="tel"
                     name="phone"
-                    placeholder="Phone Number"
+                    placeholder={
+                      user ? "Phone Number" : "Phone Number (e.g., 0712345678)"
+                    }
                     value={orderData.phone || user?.phone || ""}
                     onChange={handleChange}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-african-gold"
                   />
+                  {!user && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter your Kenyan phone number for order updates
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -289,22 +374,93 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 {orderData.deliveryOption === "delivery" && (
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
-                    <textarea
-                      name="address"
-                      placeholder="Enter your full delivery address (including street, area, city, and any landmarks)"
-                      value={orderData.address}
-                      onChange={handleChange}
-                      rows={3}
-                      required
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-african-gold resize-none"
-                    />
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <select
+                        name="address"
+                        value={orderData.address}
+                        onChange={handleChange}
+                        required
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-african-gold appearance-none bg-white"
+                      >
+                        <option value="">
+                          Select delivery area in Mombasa
+                        </option>
+                        <optgroup label="Mombasa Island">
+                          <option value="Mombasa CBD">Mombasa CBD</option>
+                          <option value="Old Town">Old Town</option>
+                          <option value="Majengo">Majengo</option>
+                          <option value="Mvita">Mvita</option>
+                          <option value="Tudor">Tudor</option>
+                          <option value="Kizingo">Kizingo</option>
+                          <option value="Kilindini">Kilindini</option>
+                        </optgroup>
+                        <optgroup label="Mombasa Mainland">
+                          <option value="Nyali">Nyali</option>
+                          <option value="Bamburi">Bamburi</option>
+                          <option value="Kisauni">Kisauni</option>
+                          <option value="Shanzu">Shanzu</option>
+                          <option value="Mtwapa">Mtwapa</option>
+                          <option value="Kongowea">Kongowea</option>
+                          <option value="Jomvu">Jomvu</option>
+                          <option value="Port Reitz">Port Reitz</option>
+                          <option value="Changamwe">Changamwe</option>
+                          <option value="Chaani">Chaani</option>
+                        </optgroup>
+                        <optgroup label="South Coast">
+                          <option value="Likoni">Likoni</option>
+                          <option value="Shelly Beach">Shelly Beach</option>
+                          <option value="Tiwi">Tiwi</option>
+                          <option value="Diani">Diani</option>
+                          <option value="Ukunda">Ukunda</option>
+                          <option value="Msambweni">Msambweni</option>
+                        </optgroup>
+                        <optgroup label="North Coast">
+                          <option value="Kilifi">Kilifi</option>
+                          <option value="Malindi">Malindi</option>
+                          <option value="Watamu">Watamu</option>
+                          <option value="Kikambala">Kikambala</option>
+                        </optgroup>
+                      </select>
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <svg
+                          className="w-5 h-5 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {orderData.address && (
+                      <div className="relative">
+                        <input
+                          type="text"
+                          name="deliveryAddress"
+                          placeholder="Specific address/landmark (e.g., Building name, street, house number)"
+                          value={orderData.deliveryAddress}
+                          onChange={handleChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-african-gold"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Optional: Add specific details like building name,
+                          street, or house number
+                        </p>
+                      </div>
+                    )}
+
                     {orderData.deliveryOption === "delivery" &&
                       !orderData.address && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Please provide a detailed address for accurate
-                          delivery
+                        <p className="text-xs text-gray-500">
+                          Please select your delivery area for accurate delivery
                         </p>
                       )}
                   </div>

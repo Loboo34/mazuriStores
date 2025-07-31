@@ -10,8 +10,12 @@ interface CartState {
     quantity: number,
     userId?: string
   ) => Promise<void>;
-  updateCartItem: (id: string, quantity: number) => Promise<void>;
-  removeFromCart: (id: string) => Promise<void>;
+  updateCartItem: (
+    id: string,
+    quantity: number,
+    userId?: string
+  ) => Promise<void>;
+  removeFromCart: (id: string, userId?: string) => Promise<void>;
   clearCart: () => void;
   fetchCartItems: () => Promise<CartItem[]>;
 }
@@ -95,43 +99,61 @@ const useCartStore = create<CartState>()(
         }
       },
 
-      updateCartItem: async (id: string, quantity: number) => {
-        try {
-          const cartData = await ApiClient.updateCartItem(id, quantity);
-          // Backend returns updated cart object
-          const cart = cartData as unknown as {
-            items: { product: Product; quantity: number }[];
-          };
-          set({
-            items: cart.items.map(
-              (item: { product: Product; quantity: number }) => ({
-                product: item.product,
-                quantity: item.quantity,
-              })
+      updateCartItem: async (id: string, quantity: number, userId?: string) => {
+        if (userId) {
+          // Authenticated user: update via API
+          try {
+            const cartData = await ApiClient.updateCartItem(id, quantity);
+            // Backend returns updated cart object
+            const cart = cartData as unknown as {
+              items: { product: Product; quantity: number }[];
+            };
+            set({
+              items: cart.items.map(
+                (item: { product: Product; quantity: number }) => ({
+                  product: item.product,
+                  quantity: item.quantity,
+                })
+              ),
+            });
+          } catch (error) {
+            console.error("Failed to update cart item:", error);
+          }
+        } else {
+          // Guest user: update local storage only
+          set((state) => ({
+            items: state.items.map((item) =>
+              item.product.id === id ? { ...item, quantity: quantity } : item
             ),
-          });
-        } catch (error) {
-          console.error("Failed to update cart item:", error);
+          }));
         }
       },
 
-      removeFromCart: async (id: string) => {
-        try {
-          const cartData = await ApiClient.removeCartItem(id);
-          // Backend returns updated cart object
-          const cart = cartData as unknown as {
-            items: { product: Product; quantity: number }[];
-          };
-          set({
-            items: cart.items.map(
-              (item: { product: Product; quantity: number }) => ({
-                product: item.product,
-                quantity: item.quantity,
-              })
-            ),
-          });
-        } catch (error) {
-          console.error("Failed to remove from cart:", error);
+      removeFromCart: async (id: string, userId?: string) => {
+        if (userId) {
+          // Authenticated user: remove via API
+          try {
+            const cartData = await ApiClient.removeCartItem(id);
+            // Backend returns updated cart object
+            const cart = cartData as unknown as {
+              items: { product: Product; quantity: number }[];
+            };
+            set({
+              items: cart.items.map(
+                (item: { product: Product; quantity: number }) => ({
+                  product: item.product,
+                  quantity: item.quantity,
+                })
+              ),
+            });
+          } catch (error) {
+            console.error("Failed to remove from cart:", error);
+          }
+        } else {
+          // Guest user: remove from local storage only
+          set((state) => ({
+            items: state.items.filter((item) => item.product.id !== id),
+          }));
         }
       },
       clearCart: () => {

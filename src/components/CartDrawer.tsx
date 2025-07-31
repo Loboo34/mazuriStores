@@ -1,6 +1,7 @@
 import React from "react";
 import { X, Plus, Minus, ShoppingBag, Trash2 } from "lucide-react";
 import useCartStore from "../store/cart.store";
+import { useAuth } from "../contexts/AuthContext";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   onCheckout,
 }) => {
   const { items, updateCartItem, removeFromCart } = useCartStore();
+  const { user } = useAuth();
 
   // Calculate derived values
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
@@ -24,9 +26,9 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
 
   const updateQuantity = (productId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(productId, user?.id);
     } else {
-      updateCartItem(productId, newQuantity);
+      updateCartItem(productId, newQuantity, user?.id);
     }
   };
 
@@ -126,7 +128,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                   </div>
 
                   <button
-                    onClick={() => removeFromCart(item.product.id)}
+                    onClick={() => removeFromCart(item.product.id, user?.id)}
                     className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors duration-300"
                   >
                     <Trash2 className="w-4 h-4" />
