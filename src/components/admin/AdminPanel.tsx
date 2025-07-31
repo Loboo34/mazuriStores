@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import AdminLayout from "./AdminLayout";
-import Dashboard from "./Dashboard";
+import EnhancedDashboard from "./EnhancedDashboard";
 import ProductManagement from "./ProductManagement";
 import OrderManagement from "./OrderManagement";
 import Settings from "./Settings";
@@ -28,7 +28,7 @@ const AdminPanel: React.FC = () => {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case "dashboard":
-        return <Dashboard />;
+        return <EnhancedDashboard />;
       case "products":
         return <ProductManagement />;
       case "orders":
@@ -47,7 +47,7 @@ const AdminPanel: React.FC = () => {
       case "settings":
         return <Settings />;
       default:
-        return <Dashboard />;
+        return <EnhancedDashboard />;
     }
   };
 

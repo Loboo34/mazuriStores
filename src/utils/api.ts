@@ -322,6 +322,30 @@ class ApiClient {
   async getTopSellingProducts() {
     return this.request("/admin/dashboard/top-products");
   }
+
+  // Wishlist endpoints
+  async getWishlist() {
+    return this.request("/wishlist");
+  }
+
+  async addToWishlist(productId: string) {
+    return this.request("/wishlist", {
+      method: "POST",
+      body: JSON.stringify({ productId }),
+    });
+  }
+
+  async removeFromWishlist(productId: string) {
+    return this.request(`/wishlist/${productId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async clearWishlist() {
+    return this.request("/wishlist", {
+      method: "DELETE",
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

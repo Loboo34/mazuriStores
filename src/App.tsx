@@ -22,10 +22,11 @@ import Footer from "./components/Footer";
 import Chatbot from "./components/Chatbot";
 import AdminPanel from "./components/admin/AdminPanel";
 import LoadingSpinner from "./components/LoadingSpinner";
+import WishlistPage from "./pages/WishlistPage";
 
 import { CartProvider } from "./contexts/CartContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import {AdminProvider} from "./contexts/AdminContext"
+import { AdminProvider } from "./contexts/AdminContext";
 //import { products } from "./data/products";
 
 import { Product } from "./types";
@@ -33,7 +34,8 @@ import useProductStore from "./store/product.store";
 
 // Main Store Component
 const Store: React.FC = () => {
-  const {  products, fetchAllProducts } = useProductStore();
+  const { products, fetchAllProducts } = useProductStore();
+  const navigate = useNavigate();
 
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -75,13 +77,21 @@ const Store: React.FC = () => {
     setIsAuthOpen(true);
   };
 
+  const handleWishlistClick = () => {
+    navigate("/wishlist");
+  };
+
   const handleCheckout = () => {
     setIsCheckoutOpen(true);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header onCartClick={handleCartClick} onAuthClick={handleAuthClick} />
+      <Header
+        onCartClick={handleCartClick}
+        onAuthClick={handleAuthClick}
+        onWishlistClick={handleWishlistClick}
+      />
 
       <main>
         <Hero />
@@ -264,12 +274,13 @@ const AppContent: React.FC = () => {
     <CartProvider>
       <Routes>
         <Route path="/" element={<Store />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
         <Route
           path="/admin"
           element={
             <ProtectedAdminRoute>
               <AdminProvider>
-              <AdminPanel />
+                <AdminPanel />
               </AdminProvider>
             </ProtectedAdminRoute>
           }

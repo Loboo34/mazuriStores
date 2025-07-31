@@ -18,6 +18,7 @@ import adminRoutes from "./routes/admin.routes";
 import paymentRoutes from "./routes/payment.routes";
 import cartRoutes from "./routes/cart.routes";
 import uploadRoutes from "./routes/upload.routes";
+import wishlistRoutes from "./routes/wishlist.routes";
 
 const app = express();
 
@@ -91,6 +92,7 @@ app.use(`${apiVersion}/categories`, categoryRoutes);
 app.use(`${apiVersion}/admin`, adminRoutes);
 app.use(`${apiVersion}/payments`, paymentRoutes);
 app.use(`${apiVersion}/cart`, cartRoutes);
+app.use(`${apiVersion}/wishlist`, wishlistRoutes);
 app.use(`${apiVersion}/upload`, uploadRoutes);
 
 // Welcome route

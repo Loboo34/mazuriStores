@@ -209,23 +209,51 @@ export const schemas = {
       .allow("")
       .when("deliveryOption", {
         is: "delivery",
-        then: Joi.string().min(1).required().custom((value, helpers) => {
-          // Validate that the address starts with a valid Mombasa area
-          const validAreas = [
-            "Mombasa CBD", "Old Town", "Majengo", "Mvita", "Tudor", "Kizingo", "Kilindini",
-            "Nyali", "Bamburi", "Kisauni", "Shanzu", "Mtwapa", "Kongowea", "Jomvu", 
-            "Port Reitz", "Changamwe", "Chaani", "Likoni", "Shelly Beach", "Tiwi", 
-            "Diani", "Ukunda", "Msambweni", "Kilifi", "Malindi", "Watamu", "Kikambala"
-          ];
-          
-          const area = value.split(' - ')[0];
-          if (!validAreas.includes(area)) {
-            return helpers.error('custom.invalidArea');
-          }
-          return value;
-        }, 'Mombasa area validation').messages({
-          'custom.invalidArea': 'Please select a valid delivery area in Mombasa'
-        }),
+        then: Joi.string()
+          .min(1)
+          .required()
+          .custom((value, helpers) => {
+            // Validate that the address starts with a valid Mombasa area
+            const validAreas = [
+              "Mombasa CBD",
+              "Old Town",
+              "Majengo",
+              "Mvita",
+              "Tudor",
+              "Kizingo",
+              "Kilindini",
+              "Nyali",
+              "Bamburi",
+              "Kisauni",
+              "Shanzu",
+              "Mtwapa",
+              "Kongowea",
+              "Jomvu",
+              "Port Reitz",
+              "Changamwe",
+              "Chaani",
+              "Likoni",
+              "Shelly Beach",
+              "Tiwi",
+              "Diani",
+              "Ukunda",
+              "Msambweni",
+              "Kilifi",
+              "Malindi",
+              "Watamu",
+              "Kikambala",
+            ];
+
+            const area = value.split(" - ")[0];
+            if (!validAreas.includes(area)) {
+              return helpers.error("custom.invalidArea");
+            }
+            return value;
+          }, "Mombasa area validation")
+          .messages({
+            "custom.invalidArea":
+              "Please select a valid delivery area in Mombasa",
+          }),
         otherwise: Joi.string().allow("").optional(),
       }),
     notes: Joi.string().max(500).optional(),
@@ -277,6 +305,13 @@ export const schemas = {
   // Newsletter subscription
   subscribe: Joi.object({
     email: Joi.string().email().required(),
+  }),
+
+  // Wishlist schemas
+  addToWishlist: Joi.object({
+    productId: Joi.string()
+      .pattern(/^[0-9a-fA-F]{24}$/)
+      .required(),
   }),
 
   // Common parameter schemas

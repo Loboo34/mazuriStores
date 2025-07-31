@@ -2,7 +2,12 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Product } from "../types";
 import ApiClient from "../utils/api";
+
 type NewProduct = Omit<Product, "id">;
+
+interface ProductResponse {
+  product: Product;
+}
 
 interface ProductState {
   products: Product[];
@@ -48,7 +53,7 @@ const useProductStore = create<ProductState>()(
 
           const newProduct = await ApiClient.addProduct(productData);
           set((state) => ({
-            products: [...state.products, newProduct.data as Product],
+            products: [...state.products, (newProduct.data as ProductResponse).product],
           }));
         } catch (error) {
           console.error("Failed to create product:", error);
@@ -92,7 +97,7 @@ const useProductStore = create<ProductState>()(
       fetchProductById: async (id: string) => {
         try {
           const response = await ApiClient.getProduct(id);
-          return (response.data as Product) || null;
+          return (response.data as ProductResponse)?.product || null;
         } catch (error) {
           console.error("Failed to fetch product by ID:", error);
           return null;

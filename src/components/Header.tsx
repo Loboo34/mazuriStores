@@ -1,21 +1,29 @@
 import React, { useState } from "react";
 import { Search, ShoppingCart, Heart, User, Menu, X } from "lucide-react";
 import useCartStore from "../store/cart.store";
+import useWishlistStore from "../store/wishlist.store";
 import { useAuth } from "../contexts/AuthContext";
 
 interface HeaderProps {
   onCartClick: () => void;
   onAuthClick: () => void;
+  onWishlistClick?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onCartClick, onAuthClick }) => {
+const Header: React.FC<HeaderProps> = ({
+  onCartClick,
+  onAuthClick,
+  onWishlistClick,
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { items } = useCartStore();
+  const { items: wishlistItems } = useWishlistStore();
   const { user, logout } = useAuth();
 
   // Calculate itemCount from the store
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
+  const wishlistCount = wishlistItems.length;
 
   // Debug logging
   //console.log("Header - itemCount:", itemCount);
@@ -56,8 +64,16 @@ const Header: React.FC<HeaderProps> = ({ onCartClick, onAuthClick }) => {
 
           {/* Desktop Icons */}
           <div className="hidden md:flex items-center space-x-6">
-            <button className="text-african-terracotta hover:text-african-red transition-colors duration-300">
+            <button
+              onClick={onWishlistClick}
+              className="relative text-african-terracotta hover:text-african-red transition-colors duration-300"
+            >
               <Heart className="w-6 h-6" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-lg z-10">
+                  {wishlistCount}
+                </span>
+              )}
             </button>
 
             <button
@@ -130,9 +146,15 @@ const Header: React.FC<HeaderProps> = ({ onCartClick, onAuthClick }) => {
       {isMenuOpen && (
         <div className="md:hidden bg-white border-t border-gray-200">
           <div className="px-4 pt-2 pb-4 space-y-4">
-            <button className="flex items-center space-x-3 text-african-terracotta hover:text-african-red transition-colors duration-300">
+            <button
+              onClick={() => {
+                onWishlistClick?.();
+                setIsMenuOpen(false);
+              }}
+              className="flex items-center space-x-3 text-african-terracotta hover:text-african-red transition-colors duration-300"
+            >
               <Heart className="w-5 h-5" />
-              <span>Wishlist</span>
+              <span>Wishlist ({wishlistCount})</span>
             </button>
 
             <button
