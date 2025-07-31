@@ -39,6 +39,22 @@ const ProductModal: React.FC<{
   onSave: () => void;
 }> = ({ isOpen, onClose, title, productForm, setProductForm, onSave }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [imageFile, setImageFile] = useState<File | undefined>(undefined);
+  const [errors, setErrors] = useState<{ image?: string }>({});
+
+  useEffect(() => {
+    if (productForm.imageFile) {
+      setImageFile(productForm.imageFile);
+      setImagePreview(productForm.image);
+    } else if (productForm.image) {
+      setImagePreview(productForm.image);
+      setImageFile(undefined);
+    } else {
+      setImagePreview("");
+      setImageFile(undefined);
+    }
+  }, [productForm.image, productForm.imageFile]);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -48,7 +64,6 @@ const ProductModal: React.FC<{
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     const allowedTypes = [
       "image/jpeg",
       "image/jpg",
@@ -57,23 +72,34 @@ const ProductModal: React.FC<{
       "image/webp",
     ];
     if (!allowedTypes.includes(file.type)) {
-      alert("Please select a valid image file (JPEG, PNG, GIF, or WebP)");
+      setErrors({
+        image: "Please select a valid image file (JPG, PNG, GIF, WebP)",
+      });
       return;
     }
-
-    // Validate file size (5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert("File size must be less than 5MB");
+      setErrors({ image: "File size must be less than 5MB" });
       return;
     }
-
-    // Store the file and create a preview URL
+    setErrors({});
     const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+    setImageFile(file);
     setProductForm((prev) => ({
       ...prev,
       imageFile: file,
-      image: previewUrl, // Show preview
+      image: previewUrl,
+    }));
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview("");
+    setImageFile(undefined);
+    setProductForm((prev) => ({
+      ...prev,
+      image: "",
+      imageFile: undefined,
     }));
   };
 
@@ -133,54 +159,83 @@ const ProductModal: React.FC<{
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Image URL or Upload File
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-800 mb-2">
+              Product Image *
             </label>
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                value={productForm.image}
-                onChange={(e) => {
-                  setProductForm((prev) => ({
-                    ...prev,
-                    image: e.target.value,
-                    imageFile: undefined, // Clear file when URL is entered
-                  }));
-                  // Reset file input
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = "";
-                  }
-                }}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-african-gold"
-                placeholder="Enter image URL or click upload button to select file"
-              />
-              <input
-                type="file"
-                accept="image/*"
-                ref={fileInputRef}
-                style={{ display: "none" }}
-                onChange={handleFileChange}
-              />
-              <button
-                type="button"
-                onClick={handleUploadClick}
-                className="px-4 py-2 bg-african-terracotta text-white rounded-lg hover:bg-african-terracotta-dark transition-colors duration-200 flex items-center"
-              >
-                <Upload className="w-4 h-4" />
-              </button>
-            </div>
-            {productForm.image && (
-              <div className="mt-2">
-                <img
-                  src={productForm.image}
-                  alt="Preview"
-                  className="w-20 h-20 object-cover rounded-lg border"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
+            {!imagePreview ? (
+              <div className="relative">
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
                 />
+                <label
+                  htmlFor="image-upload"
+                  className={`w-full h-32 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all duration-200 hover:bg-gray-50 ${
+                    errors.image
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-300 hover:border-african-gold"
+                  }`}
+                >
+                  <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                  <span className="text-sm text-gray-600 text-center">
+                    Click to upload image
+                    <br />
+                    <span className="text-xs text-gray-500">
+                      Supports: JPG, PNG, GIF, WebP (Max 5MB)
+                    </span>
+                  </span>
+                </label>
               </div>
+            ) : (
+              <div className="relative">
+                <div className="border-2 border-gray-200 rounded-xl p-4 bg-gray-50">
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Product preview"
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors duration-200"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="mt-3 text-center">
+                    <p className="text-sm text-gray-600">{imageFile?.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {imageFile
+                        ? `${(imageFile.size / 1024 / 1024).toFixed(2)} MB`
+                        : ""}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {errors.image && (
+              <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-red-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h1m4 0h-1v4h1zm-9 0H7v4h1zm4-8h1m-1 0V7m0 1v1zm0 4h1m-1 0v1m0 4h1m-1 0v1m-4-8H7v4h1zm9 0h1v4h-1z"
+                  />
+                </svg>
+                {errors.image}
+              </p>
             )}
           </div>
 

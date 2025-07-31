@@ -1,19 +1,31 @@
-import { Request, Response } from 'express';
-import Order from '../models/order.model';
-import Product from '../models/product.model';
-import User from '../models/user.model';
-import { asyncHandler, createError } from '../middlewares/errorHandler.middleware';
+import { Request, Response } from "express";
+import Order from "../models/order.model";
+import Product from "../models/product.model";
+import User from "../models/user.model";
+import {
+  asyncHandler,
+  createError,
+} from "../middlewares/errorHandler.middleware";
 
 // Create new order
 export const createOrder = asyncHandler(async (req: Request, res: Response) => {
-  const { items, customerInfo, paymentMethod, deliveryOption, deliveryAddress, notes } = req.body;
+  const {
+    items,
+    customerInfo,
+    paymentMethod,
+    deliveryOption,
+    deliveryAddress,
+    notes,
+  } = req.body;
   const userId = req.user?.id; // This might be undefined for guest orders
 
   // Generate order number
   const generateOrderNumber = () => {
-    const prefix = 'ORD';
+    const prefix = "ORD";
     const timestamp = Date.now().toString();
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const random = Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, "0");
     return `${prefix}-${timestamp.slice(-8)}-${random}`;
   };
 
@@ -23,12 +35,12 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
 
   for (const item of items) {
     const product = await Product.findById(item.product);
-    
+
     if (!product || !product.isActive) {
       throw createError(`Product not found: ${item.product}`, 404);
     }
 
-    if (product.availability === 'out-of-stock') {
+    if (product.availability === "out-of-stock") {
       throw createError(`Product out of stock: ${product.name}`, 400);
     }
 
@@ -44,16 +56,25 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
       name: product.name,
       price: product.price,
       quantity: item.quantity,
-      image: product.images[0]
+      image:
+        product.images && product.images.length > 0
+          ? product.images[0]
+          : product.image || "",
     });
 
     // Update product stock
     product.stock -= item.quantity;
+
+    // Ensure required fields are present before saving
+    if (!product.image && product.images && product.images.length > 0) {
+      product.image = product.images[0];
+    }
+
     await product.save();
   }
 
   // Calculate delivery fee
-  const deliveryFee = deliveryOption === 'delivery' ? 0 : 0; // Free delivery
+  const deliveryFee = deliveryOption === "delivery" ? 0 : 0; // Free delivery
   const tax = 0; // No tax for now
   const total = subtotal + deliveryFee + tax;
 
@@ -68,8 +89,9 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
     total,
     paymentMethod,
     deliveryOption,
-    deliveryAddress: deliveryOption === 'delivery' ? deliveryAddress : undefined,
-    notes
+    deliveryAddress:
+      deliveryOption === "delivery" ? deliveryAddress : undefined,
+    notes,
   };
 
   // Add user if authenticated, otherwise it's a guest order
@@ -82,200 +104,210 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
 
   // Populate user data if exists
   if (userId) {
-    await order.populate('user', 'name email phone');
+    await order.populate("user", "name email phone");
   }
 
   res.status(201).json({
     success: true,
-    message: 'Order created successfully',
-    data: { order }
+    message: "Order created successfully",
+    data: { order },
   });
 });
 
 // Get all orders (Admin only)
-export const getAllOrders = asyncHandler(async (req: Request, res: Response) => {
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
-  const status = req.query.status as string;
-  const paymentStatus = req.query.paymentStatus as string;
-  const search = req.query.search as string;
-  const sort = req.query.sort as string || '-createdAt';
+export const getAllOrders = asyncHandler(
+  async (req: Request, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as string;
+    const paymentStatus = req.query.paymentStatus as string;
+    const search = req.query.search as string;
+    const sort = (req.query.sort as string) || "-createdAt";
 
-  // Build query
-  const query: any = {};
+    // Build query
+    const query: any = {};
 
-  if (status) {
-    query.status = status;
-  }
-
-  if (paymentStatus) {
-    query.paymentStatus = paymentStatus;
-  }
-
-  if (search) {
-    query.$or = [
-      { orderNumber: { $regex: search, $options: 'i' } },
-      { 'customerInfo.name': { $regex: search, $options: 'i' } },
-      { 'customerInfo.email': { $regex: search, $options: 'i' } },
-      { 'customerInfo.phone': { $regex: search, $options: 'i' } }
-    ];
-  }
-
-  // Calculate pagination
-  const skip = (page - 1) * limit;
-
-  // Get orders with pagination
-  const orders = await Order.find(query)
-    .populate('user', 'name email phone')
-    .populate('items.product', 'name images')
-    .sort(sort)
-    .skip(skip)
-    .limit(limit);
-
-  const total = await Order.countDocuments(query);
-  const totalPages = Math.ceil(total / limit);
-
-  res.status(200).json({
-    success: true,
-    data: {
-      orders,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalOrders: total,
-        hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
+    if (status) {
+      query.status = status;
     }
-  });
-});
+
+    if (paymentStatus) {
+      query.paymentStatus = paymentStatus;
+    }
+
+    if (search) {
+      query.$or = [
+        { orderNumber: { $regex: search, $options: "i" } },
+        { "customerInfo.name": { $regex: search, $options: "i" } },
+        { "customerInfo.email": { $regex: search, $options: "i" } },
+        { "customerInfo.phone": { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Get orders with pagination
+    const orders = await Order.find(query)
+      .populate("user", "name email phone")
+      .populate("items.product", "name images")
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Order.countDocuments(query);
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        orders,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalOrders: total,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
+        },
+      },
+    });
+  }
+);
 
 // Get user orders
-export const getUserOrders = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user?.id;
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
-  const status = req.query.status as string;
+export const getUserOrders = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as string;
 
-  // Build query
-  const query: any = { user: userId };
+    // Build query
+    const query: any = { user: userId };
 
-  if (status) {
-    query.status = status;
-  }
-
-  // Calculate pagination
-  const skip = (page - 1) * limit;
-
-  // Get orders with pagination
-  const orders = await Order.find(query)
-    .populate('items.product', 'name images')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
-
-  const total = await Order.countDocuments(query);
-  const totalPages = Math.ceil(total / limit);
-
-  res.status(200).json({
-    success: true,
-    data: {
-      orders,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalOrders: total,
-        hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
+    if (status) {
+      query.status = status;
     }
-  });
-});
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Get orders with pagination
+    const orders = await Order.find(query)
+      .populate("items.product", "name images")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Order.countDocuments(query);
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        orders,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalOrders: total,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
+        },
+      },
+    });
+  }
+);
 
 // Get order by ID
-export const getOrderById = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user?.id;
-  const userRole = req.user?.role;
+export const getOrderById = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
 
-  const order = await Order.findById(id)
-    .populate('user', 'name email phone')
-    .populate('items.product', 'name images sku');
+    const order = await Order.findById(id)
+      .populate("user", "name email phone")
+      .populate("items.product", "name images sku");
 
-  if (!order) {
-    throw createError('Order not found', 404);
+    if (!order) {
+      throw createError("Order not found", 404);
+    }
+
+    // Check if user can access this order
+    if (userRole !== "admin" && order.user?.toString() !== userId) {
+      throw createError("Access denied", 403);
+    }
+
+    res.status(200).json({
+      success: true,
+      data: { order },
+    });
   }
-
-  // Check if user can access this order
-  if (userRole !== 'admin' && order.user?.toString() !== userId) {
-    throw createError('Access denied', 403);
-  }
-
-  res.status(200).json({
-    success: true,
-    data: { order }
-  });
-});
+);
 
 // Update order status (Admin only)
-export const updateOrderStatus = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { status, notes } = req.body;
+export const updateOrderStatus = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { status, notes } = req.body;
 
-  const order = await Order.findById(id);
+    const order = await Order.findById(id);
 
-  if (!order) {
-    throw createError('Order not found', 404);
+    if (!order) {
+      throw createError("Order not found", 404);
+    }
+
+    const oldStatus = order.status;
+    order.status = status;
+
+    if (notes) {
+      order.notes = notes;
+    }
+
+    // Set delivery date if order is delivered
+    if (status === "delivered" && oldStatus !== "delivered") {
+      order.actualDelivery = new Date();
+    }
+
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Order status updated successfully",
+      data: { order },
+    });
   }
-
-  const oldStatus = order.status;
-  order.status = status;
-
-  if (notes) {
-    order.notes = notes;
-  }
-
-  // Set delivery date if order is delivered
-  if (status === 'delivered' && oldStatus !== 'delivered') {
-    order.actualDelivery = new Date();
-  }
-
-  await order.save();
-
-  res.status(200).json({
-    success: true,
-    message: 'Order status updated successfully',
-    data: { order }
-  });
-});
+);
 
 // Update order customer info (Admin only)
-export const updateOrderCustomerInfo = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { customerInfo, deliveryAddress } = req.body;
+export const updateOrderCustomerInfo = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { customerInfo, deliveryAddress } = req.body;
 
-  const order = await Order.findById(id);
+    const order = await Order.findById(id);
 
-  if (!order) {
-    throw createError('Order not found', 404);
+    if (!order) {
+      throw createError("Order not found", 404);
+    }
+
+    if (customerInfo) {
+      order.customerInfo = { ...order.customerInfo, ...customerInfo };
+    }
+
+    if (deliveryAddress !== undefined) {
+      order.deliveryAddress = deliveryAddress;
+    }
+
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Order customer information updated successfully",
+      data: { order },
+    });
   }
-
-  if (customerInfo) {
-    order.customerInfo = { ...order.customerInfo, ...customerInfo };
-  }
-
-  if (deliveryAddress !== undefined) {
-    order.deliveryAddress = deliveryAddress;
-  }
-
-  await order.save();
-
-  res.status(200).json({
-    success: true,
-    message: 'Order customer information updated successfully',
-    data: { order }
-  });
-});
+);
 
 // Cancel order
 export const cancelOrder = asyncHandler(async (req: Request, res: Response) => {
@@ -284,20 +316,20 @@ export const cancelOrder = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.id;
   const userRole = req.user?.role;
 
-  const order = await Order.findById(id).populate('items.product');
+  const order = await Order.findById(id).populate("items.product");
 
   if (!order) {
-    throw createError('Order not found', 404);
+    throw createError("Order not found", 404);
   }
 
   // Check if user can cancel this order
-  if (userRole !== 'admin' && order.user?.toString() !== userId) {
-    throw createError('Access denied', 403);
+  if (userRole !== "admin" && order.user?.toString() !== userId) {
+    throw createError("Access denied", 403);
   }
 
   // Check if order can be cancelled
-  if (['shipped', 'delivered', 'cancelled'].includes(order.status)) {
-    throw createError('Order cannot be cancelled', 400);
+  if (["shipped", "delivered", "cancelled"].includes(order.status)) {
+    throw createError("Order cannot be cancelled", 400);
   }
 
   // Restore product stock
@@ -309,113 +341,117 @@ export const cancelOrder = asyncHandler(async (req: Request, res: Response) => {
     }
   }
 
-  order.status = 'cancelled';
+  order.status = "cancelled";
   order.cancelReason = cancelReason;
   await order.save();
 
   res.status(200).json({
     success: true,
-    message: 'Order cancelled successfully',
-    data: { order }
+    message: "Order cancelled successfully",
+    data: { order },
   });
 });
 
 // Get order statistics (Admin only)
-export const getOrderStats = asyncHandler(async (req: Request, res: Response) => {
-  const stats = await Order.aggregate([
-    {
-      $group: {
-        _id: null,
-        totalOrders: { $sum: 1 },
-        totalRevenue: { $sum: '$total' },
-        pendingOrders: {
-          $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] }
+export const getOrderStats = asyncHandler(
+  async (req: Request, res: Response) => {
+    const stats = await Order.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalRevenue: { $sum: "$total" },
+          pendingOrders: {
+            $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
+          },
+          processingOrders: {
+            $sum: { $cond: [{ $eq: ["$status", "processing"] }, 1, 0] },
+          },
+          shippedOrders: {
+            $sum: { $cond: [{ $eq: ["$status", "shipped"] }, 1, 0] },
+          },
+          deliveredOrders: {
+            $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] },
+          },
+          cancelledOrders: {
+            $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] },
+          },
+          averageOrderValue: { $avg: "$total" },
         },
-        processingOrders: {
-          $sum: { $cond: [{ $eq: ['$status', 'processing'] }, 1, 0] }
-        },
-        shippedOrders: {
-          $sum: { $cond: [{ $eq: ['$status', 'shipped'] }, 1, 0] }
-        },
-        deliveredOrders: {
-          $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] }
-        },
-        cancelledOrders: {
-          $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] }
-        },
-        averageOrderValue: { $avg: '$total' }
-      }
-    }
-  ]);
+      },
+    ]);
 
-  // Get recent orders (last 30 days)
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Get recent orders (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const recentOrders = await Order.countDocuments({
-    createdAt: { $gte: thirtyDaysAgo }
-  });
+    const recentOrders = await Order.countDocuments({
+      createdAt: { $gte: thirtyDaysAgo },
+    });
 
-  const recentRevenue = await Order.aggregate([
-    {
-      $match: {
-        createdAt: { $gte: thirtyDaysAgo },
-        status: { $in: ['delivered', 'shipped'] }
-      }
-    },
-    {
-      $group: {
-        _id: null,
-        revenue: { $sum: '$total' }
-      }
-    }
-  ]);
+    const recentRevenue = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: thirtyDaysAgo },
+          status: { $in: ["delivered", "shipped"] },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          revenue: { $sum: "$total" },
+        },
+      },
+    ]);
 
-  res.status(200).json({
-    success: true,
-    data: {
-      ...stats[0],
-      recentOrders,
-      recentRevenue: recentRevenue[0]?.revenue || 0
-    }
-  });
-});
+    res.status(200).json({
+      success: true,
+      data: {
+        ...stats[0],
+        recentOrders,
+        recentRevenue: recentRevenue[0]?.revenue || 0,
+      },
+    });
+  }
+);
 
 // Get daily sales data (Admin only)
-export const getDailySales = asyncHandler(async (req: Request, res: Response) => {
-  const days = parseInt(req.query.days as string) || 30;
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
+export const getDailySales = asyncHandler(
+  async (req: Request, res: Response) => {
+    const days = parseInt(req.query.days as string) || 30;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
 
-  const salesData = await Order.aggregate([
-    {
-      $match: {
-        createdAt: { $gte: startDate },
-        status: { $in: ['delivered', 'shipped'] }
-      }
-    },
-    {
-      $group: {
-        _id: {
-          year: { $year: '$createdAt' },
-          month: { $month: '$createdAt' },
-          day: { $dayOfMonth: '$createdAt' }
+    const salesData = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate },
+          status: { $in: ["delivered", "shipped"] },
         },
-        orders: { $sum: 1 },
-        revenue: { $sum: '$total' },
-        date: { $first: '$createdAt' }
-      }
-    },
-    {
-      $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
-    }
-  ]);
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+            day: { $dayOfMonth: "$createdAt" },
+          },
+          orders: { $sum: 1 },
+          revenue: { $sum: "$total" },
+          date: { $first: "$createdAt" },
+        },
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 },
+      },
+    ]);
 
-  res.status(200).json({
-    success: true,
-    data: { salesData }
-  });
-});
+    res.status(200).json({
+      success: true,
+      data: { salesData },
+    });
+  }
+);
 
 export default {
   createOrder,
@@ -426,5 +462,5 @@ export default {
   updateOrderCustomerInfo,
   cancelOrder,
   getOrderStats,
-  getDailySales
+  getDailySales,
 };

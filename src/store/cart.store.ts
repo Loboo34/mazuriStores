@@ -12,6 +12,7 @@ interface CartState {
   ) => Promise<void>;
   updateCartItem: (id: string, quantity: number) => Promise<void>;
   removeFromCart: (id: string) => Promise<void>;
+  clearCart: () => void;
   fetchCartItems: () => Promise<CartItem[]>;
 }
 
@@ -132,6 +133,9 @@ const useCartStore = create<CartState>()(
         } catch (error) {
           console.error("Failed to remove from cart:", error);
         }
+      },
+      clearCart: () => {
+        set({ items: [] });
       },
       fetchCartItems: async () => {
         try {

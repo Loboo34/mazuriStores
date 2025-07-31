@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Search, ShoppingCart, Heart, User, Menu, X } from 'lucide-react';
-import { useCart } from '../contexts/CartContext';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState } from "react";
+import { Search, ShoppingCart, Heart, User, Menu, X } from "lucide-react";
+import useCartStore from "../store/cart.store";
+import { useAuth } from "../contexts/AuthContext";
 
 interface HeaderProps {
   onCartClick: () => void;
@@ -10,9 +10,16 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onCartClick, onAuthClick }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const { itemCount } = useCart();
+  const [searchQuery, setSearchQuery] = useState("");
+  const { items } = useCartStore();
   const { user, logout } = useAuth();
+
+  // Calculate itemCount from the store
+  const itemCount = items.reduce((total, item) => total + item.quantity, 0);
+
+  // Debug logging
+  //console.log("Header - itemCount:", itemCount);
+  //console.log("Header - items:", items);
 
   const handleLogout = () => {
     logout();
@@ -28,7 +35,9 @@ const Header: React.FC<HeaderProps> = ({ onCartClick, onAuthClick }) => {
             <h1 className="text-2xl font-display font-bold text-african-terracotta">
               Mazuri Stores
             </h1>
-            <p className="text-xs text-african-brown -mt-1">Authentic African Decor</p>
+            <p className="text-xs text-african-brown -mt-1">
+              Authentic African Decor
+            </p>
           </div>
 
           {/* Desktop Search Bar */}
@@ -50,14 +59,14 @@ const Header: React.FC<HeaderProps> = ({ onCartClick, onAuthClick }) => {
             <button className="text-african-terracotta hover:text-african-red transition-colors duration-300">
               <Heart className="w-6 h-6" />
             </button>
-            
-            <button 
+
+            <button
               onClick={onCartClick}
               className="relative text-african-terracotta hover:text-african-red transition-colors duration-300"
             >
               <ShoppingCart className="w-6 h-6" />
               {itemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-african-red text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-lg z-10">
                   {itemCount}
                 </span>
               )}
@@ -66,7 +75,9 @@ const Header: React.FC<HeaderProps> = ({ onCartClick, onAuthClick }) => {
             <div className="relative">
               {user ? (
                 <div className="flex items-center space-x-3">
-                  <span className="text-sm text-african-brown">Hello, {user.name}</span>
+                  <span className="text-sm text-african-brown">
+                    Hello, {user.name}
+                  </span>
                   <button
                     onClick={handleLogout}
                     className="bg-african-terracotta text-white px-4 py-2 rounded-full hover:bg-african-terracotta-dark transition-colors duration-300"
@@ -75,7 +86,7 @@ const Header: React.FC<HeaderProps> = ({ onCartClick, onAuthClick }) => {
                   </button>
                 </div>
               ) : (
-                <button 
+                <button
                   onClick={onAuthClick}
                   className="text-african-terracotta hover:text-african-red transition-colors duration-300"
                 >
@@ -91,7 +102,11 @@ const Header: React.FC<HeaderProps> = ({ onCartClick, onAuthClick }) => {
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="text-african-terracotta hover:text-african-red transition-colors duration-300"
             >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
             </button>
           </div>
         </div>
@@ -119,8 +134,8 @@ const Header: React.FC<HeaderProps> = ({ onCartClick, onAuthClick }) => {
               <Heart className="w-5 h-5" />
               <span>Wishlist</span>
             </button>
-            
-            <button 
+
+            <button
               onClick={() => {
                 onCartClick();
                 setIsMenuOpen(false);
@@ -142,7 +157,7 @@ const Header: React.FC<HeaderProps> = ({ onCartClick, onAuthClick }) => {
                 </button>
               </div>
             ) : (
-              <button 
+              <button
                 onClick={() => {
                   onAuthClick();
                   setIsMenuOpen(false);

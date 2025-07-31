@@ -69,7 +69,7 @@ export interface makeOrder {
     phone: string;
     address: string;
   };
-  paymentMethod: "mpesa" | "card";
+  paymentMethod: "mpesa" | "cash";
   deliveryOption: "pickup" | "delivery";
   deliveryAddress?: string;
 }

@@ -201,15 +201,17 @@ export const schemas = {
       phone: Joi.string()
         .pattern(/^254[0-9]{9}$/)
         .required(),
-      address: Joi.string().optional(),
+      address: Joi.string().allow("").optional(),
     }).required(),
     paymentMethod: Joi.string().valid("mpesa", "card", "cash").required(),
     deliveryOption: Joi.string().valid("pickup", "delivery").required(),
-    deliveryAddress: Joi.string().when("deliveryOption", {
-      is: "delivery",
-      then: Joi.required(),
-      otherwise: Joi.optional(),
-    }),
+    deliveryAddress: Joi.string()
+      .allow("")
+      .when("deliveryOption", {
+        is: "delivery",
+        then: Joi.string().min(1).required(),
+        otherwise: Joi.string().allow("").optional(),
+      }),
     notes: Joi.string().max(500).optional(),
   }),
 
