@@ -82,21 +82,7 @@ export const LoginForm: React.FC = () => {
           </Button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <div className="text-center text-sm text-gray-500">
-            <p className="mb-2">Demo Accounts:</p>
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div className="bg-gray-50 p-2 rounded">
-                <strong>Admin:</strong><br />
-                admin / admin123
-              </div>
-              <div className="bg-gray-50 p-2 rounded">
-                <strong>Cashier:</strong><br />
-                cashier / cash123
-              </div>
-            </div>
-          </div>
-        </div>
+       
       </div>
     </div>
   );

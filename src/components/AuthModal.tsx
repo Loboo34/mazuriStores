@@ -257,7 +257,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
           </button>
 
           {/* Demo Credentials */}
-          <div className="text-center">
+          {/* <div className="text-center">
             <div className="bg-african-cream p-4 rounded-lg">
               <p className="text-sm text-african-brown font-medium mb-2">
                 Demo Credentials:
@@ -269,7 +269,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
                 Admin: admin@mazuristores.com / admin123
               </p>
             </div>
-          </div>
+          </div> */}
         </form>
       </div>
     </div>

@@ -53,7 +53,10 @@ const useProductStore = create<ProductState>()(
 
           const newProduct = await ApiClient.addProduct(productData);
           set((state) => ({
-            products: [...state.products, (newProduct.data as ProductResponse).product],
+            products: [
+              ...state.products,
+              (newProduct.data as ProductResponse).product,
+            ],
           }));
         } catch (error) {
           console.error("Failed to create product:", error);

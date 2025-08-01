@@ -102,13 +102,7 @@ const AdminLogin: React.FC = () => {
             {loading ? 'Signing In...' : 'Sign In to Admin Panel'}
           </button>
 
-          <div className="text-center">
-            <div className="bg-african-cream p-4 rounded-lg">
-              <p className="text-sm text-african-brown font-medium mb-2">Demo Credentials:</p>
-              <p className="text-xs text-gray-600">Email: admin@mazuristores.com</p>
-              <p className="text-xs text-gray-600">Password: admin123</p>
-            </div>
-          </div>
+       
         </form>
       </div>
     </div>
